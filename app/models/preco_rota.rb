@@ -1,0 +1,2 @@
+class PrecoRota < ApplicationRecord
+end
