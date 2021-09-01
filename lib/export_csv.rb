@@ -1,0 +1,190 @@
+
+#result = []
+#a.each_with_index do |x, i|
+#  puts "#{i}\n"
+#  output = {}
+#  x["Legs"].each_with_index do |legs, leg_index|
+#    puts "Leg #{leg_index}\n"
+#    output["Arrival_#{leg_index}"] = legs["Arrival"]
+#    output["Departure_#{leg_index}"] = legs["Departure"]
+#    output["OriginStation_#{leg_index}"] = legs["OriginStation"]
+#    output["DestinationStation_#{leg_index}"] = legs["DestinationStation"]
+#    output["Carriers_#{leg_index}"] = legs["Carriers"]
+#  end
+#  x["Agents"].each_with_index do |agent, agent_index|
+#    output["Name_Agent_#{agent_index}"] = agent["Name"]
+#    output["Type_Agent_#{agent_index}"] = agent["Type"]
+#    output["Id_Agent_#{agent_index}"] = agent["Id"]
+#  end
+#  x["Places"].each_with_index do |place, place_index|
+#    output["Code_Place_#{place_index}"] = place["Code"]
+#    output["Name_Place_#{place_index}"] = place["Name"]
+#    output["Type_Place_#{place_index}"] = place["Type"]
+#    output["Id_Place_#{place_index}"] = place["Id"]
+#    output["ParentId_Place_#{place_index}"] = place["ParentId"]
+#  end
+#  x["Itineraries"].each do |itinerarie|
+#    output["InboundLegId"] = itinerarie["InboundLegId"]
+#    output["OutboundLegId"] = itinerarie["OutboundLegId"]
+
+#    itinerarie["PricingOptions"].each_with_index do |price, price_index|
+#      puts "Price #{price_index}\n"
+#      output["Price_#{price_index}"] = price["Price"]
+#      output["Agents_#{price_index}"] = price["Agents"]
+#    end
+#  end
+#  x["Carriers"].each do |carrier|
+#    output["Id_Carrier"] = carrier["Id"]
+#    output["Id_Name"] = carrier["Name"]
+#  end
+#  result << output
+#end
+
+#indice = 0
+#contagem_de_keys = []
+
+#if result.length > 0
+#  while indice < result.length
+#    line = {}
+#    line["indice_hash"] = indice
+#    line["numero_de_chaves"] = result[indice].count
+#    contagem_de_keys << line
+#    indice += 1
+#  end
+
+#  max_keys = contagem_de_keys.max_by{|k|k["numero_de_chaves"]}
+#  hash_max_keys = max_keys["indice_hash"]
+
+#  column_names = result[hash_max_keys].keys
+#end
+
+#header = column_names
+#file_name = "tmp/#{Time.now.to_i}_FlighPrice.csv"
+
+#CSV.open(file_name, "a", write_headers: true, headers: header, force_quotes: true) do |csv|
+#  result.each do |row|
+#    csv << row.values_at(*header)
+#  end
+#end
+
+#######################
+#### 5 csvs da Karinne
+#######################
+
+a = PrecoRota.where.not("content ->> 'Itineraries' = ?", '[]').first(1000).pluck(:content)
+# Legs
+result = []
+a.each_with_index do |x, i|
+  puts "#{i}\n"
+  x["Legs"].each_with_index do |legs, leg_index|
+    output = {}
+    output["Arrival"] = legs["Arrival"]
+    output["Departure"] = legs["Departure"]
+    output["OriginStation"] = legs["OriginStation"]
+    output["DestinationStation"] = legs["DestinationStation"]
+    output["Carriers"] = legs["Carriers"]
+    output["Id"] = legs["Id"]
+    result << output
+  end
+end
+column_names = result.first.keys
+s = CSV.generate do |csv|
+  csv << column_names
+  result.each do |x|
+  csv << x.values
+  end
+end
+File.write("tmp/Legs_#{DateTime.now.strftime("%Y-%m-%d")}.csv", s)
+
+# Agents
+result = []
+a.each_with_index do |x, i|
+  puts "#{i}\n"
+  x["Agents"].each_with_index do |agent, agent_index|
+    output = {}
+    output["Name"] = agent["Name"]
+    output["Type"] = agent["Type"]
+    output["Id"] = agent["Id"]
+    result << output
+  end
+end
+
+column_names = result.first.keys
+s = CSV.generate do |csv|
+  csv << column_names
+  result.each do |x|
+  csv << x.values
+  end
+end
+File.write("tmp/Agents_#{DateTime.now.strftime("%Y-%m-%d")}.csv", s)
+
+# Places
+result = []
+a.each_with_index do |x, i|
+  puts "#{i}\n"
+  x["Places"].each_with_index do |place, place_index|
+    output = {}
+    output["Code"] = place["Code"]
+    output["Name"] = place["Name"]
+    output["Type"] = place["Type"]
+    output["Id"] = place["Id"]
+    output["ParentId"] = place["ParentId"]
+    result << output
+  end
+end
+
+column_names = result.first.keys
+s = CSV.generate do |csv|
+  csv << column_names
+  result.each do |x|
+  csv << x.values
+  end
+end
+File.write("tmp/Places_#{DateTime.now.strftime("%Y-%m-%d")}.csv", s)
+
+# Itineraries
+result = []
+a.each_with_index do |x, i|
+  puts "#{i}\n"
+  x["Itineraries"].each do |itinerarie|
+    itinerarie["PricingOptions"].each_with_index do |price, price_index|
+      output = {}
+      output["InboundLegId"] = itinerarie["InboundLegId"]
+      output["OutboundLegId"] = itinerarie["OutboundLegId"]
+      output["Price"] = price["Price"]
+      output["Agents"] = price["Agents"]
+      result << output
+    end
+  end
+end
+
+column_names = result.first.keys
+s = CSV.generate do |csv|
+  csv << column_names
+  result.each do |x|
+  csv << x.values
+  end
+end
+File.write("tmp/Itineraries_#{DateTime.now.strftime("%Y-%m-%d")}.csv", s)
+
+# Carriers
+result = []
+a.each_with_index do |x, i|
+  x["Carriers"].each do |carrier|
+    output = {}
+    output["Id"] = carrier["Id"]
+    output["Name"] = carrier["Name"]
+    output["Code"] = carrier["Code"]
+    result << output
+  end
+end
+
+column_names = result.first.keys
+s = CSV.generate do |csv|
+  csv << column_names
+  result.each do |x|
+  csv << x.values
+  end
+end
+File.write("tmp/Carriers_#{DateTime.now.strftime("%Y-%m-%d")}.csv", s)
+
