@@ -15,12 +15,15 @@ class PrecoRotaController < ApplicationController
 
   # POST /preco_rota
   def create
-    @preco_rotum = PrecoRota.new(content: params)
-    #byebug
-    if @preco_rotum.save
-      render json: @preco_rotum, status: :created, location: @preco_rotum
-    else
-      render json: @preco_rotum.errors, status: :unprocessable_entity
+    # byebug
+    if params["Itineraries"] != []
+      @preco_rotum = PrecoRota.new(content: params)
+      # byebug
+      if @preco_rotum.save
+        render json: @preco_rotum, status: :created, location: @preco_rotum
+      else
+        render json: @preco_rotum.errors, status: :unprocessable_entity
+      end
     end
   end
 
