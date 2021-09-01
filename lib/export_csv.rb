@@ -59,7 +59,7 @@
 #end
 
 #header = column_names
-#file_name = "tmp/#{Time.now.to_i}_FlighPrice.csv"
+#file_name = "tmp/csv/#{Time.now.to_i}_FlighPrice.csv"
 
 #CSV.open(file_name, "a", write_headers: true, headers: header, force_quotes: true) do |csv|
 #  result.each do |row|
@@ -67,124 +67,223 @@
 #  end
 #end
 
+# Conectando local no postgres
+conn = PGconn.connect( :hostaddr=>"3.231.55.78", :port=>5432, :dbname=>"fligh_price_development", :user=>"vini", :password=>'123456')
+res = conn.exec("SELECT * FROM preco_rota WHERE NOT (content ->> 'Itineraries' = '[]')")
+
 #######################
 #### 5 csvs da Karinne
 #######################
+id = 2616
+stop = 0
+while stop <= 74581
+  id = id+1001
+  stop = id +1000
+  puts "FROM #{id} TO --> #{stop}\n"
+  a = PrecoRota.where.not("content ->> 'Itineraries' = ?", '[]').where(id: id..stop)
+  # Legs
+  result = []
+  a.each_with_index do |x, i|
+    puts "#{i}\n"
+    x.content["Legs"].each_with_index do |legs, leg_index|
+      output = {}
+      output["Arrival"] = legs["Arrival"]
+      output["Departure"] = legs["Departure"]
+      output["OriginStation"] = legs["OriginStation"]
+      output["DestinationStation"] = legs["DestinationStation"]
+      output["Carriers"] = legs["Carriers"]
+      output["Id"] = legs["Id"]
+      output["collection_date"] = x.created_at
+      result << output
+    end
+  end
+  column_names = result.first.keys
+  s = CSV.generate do |csv|
+    csv << column_names
+    result.each do |x|
+    csv << x.values
+    end
+  end
+  File.write("tmp/csv/Legs_#{DateTime.now.strftime("%Y-%m-%d")}_#{id}-#{stop}.csv", s)
 
-a = PrecoRota.where.not("content ->> 'Itineraries' = ?", '[]').first(1000).pluck(:content)
+  # Agents
+  result = []
+  a.each_with_index do |x, i|
+    puts "#{i}\n"
+    x.content["Agents"].each_with_index do |agent, agent_index|
+      output = {}
+      output["Name"] = agent["Name"]
+      output["Type"] = agent["Type"]
+      output["Id"] = agent["Id"]
+      output["collection_date"] = x.created_at
+      result << output
+    end
+  end
+
+  column_names = result.first.keys
+  s = CSV.generate do |csv|
+    csv << column_names
+    result.each do |x|
+    csv << x.values
+    end
+  end
+  File.write("tmp/csv/Agents_#{DateTime.now.strftime("%Y-%m-%d")}_#{id}-#{stop}.csv", s)
+
+  # Places
+  result = []
+  a.each_with_index do |x, i|
+    puts "#{i}\n"
+    x.content["Places"].each_with_index do |place, place_index|
+      output = {}
+      output["Code"] = place["Code"]
+      output["Name"] = place["Name"]
+      output["Type"] = place["Type"]
+      output["Id"] = place["Id"]
+      output["ParentId"] = place["ParentId"]
+      output["collection_date"] = x.created_at
+      result << output
+    end
+  end
+
+  column_names = result.first.keys
+  s = CSV.generate do |csv|
+    csv << column_names
+    result.each do |x|
+    csv << x.values
+    end
+  end
+  File.write("tmp/csv/Places_#{DateTime.now.strftime("%Y-%m-%d")}_#{id}-#{stop}.csv", s)
+
+  # Itineraries
+  result = []
+  a.each_with_index do |x, i|
+    puts "#{i}\n"
+    x.content["Itineraries"].each do |itinerarie|
+      itinerarie["PricingOptions"].each_with_index do |price, price_index|
+        output = {}
+        output["InboundLegId"] = itinerarie["InboundLegId"]
+        output["OutboundLegId"] = itinerarie["OutboundLegId"]
+        output["Price"] = price["Price"]
+        output["Agents"] = price["Agents"]
+        output["collection_date"] = x.created_at
+        result << output
+      end
+    end
+  end
+
+  column_names = result.first.keys
+  s = CSV.generate do |csv|
+    csv << column_names
+    result.each do |x|
+    csv << x.values
+    end
+  end
+  File.write("tmp/csv/Itineraries_#{DateTime.now.strftime("%Y-%m-%d")}_#{id}-#{stop}.csv", s)
+
+  # Carriers
+  result = []
+  a.each_with_index do |x, i|
+    x.content["Carriers"].each do |carrier|
+      output = {}
+      output["Id"] = carrier["Id"]
+      output["Name"] = carrier["Name"]
+      output["Code"] = carrier["Code"]
+      output["collection_date"] = x.created_at
+      result << output
+    end
+  end
+
+  column_names = result.first.keys
+  s = CSV.generate do |csv|
+    csv << column_names
+    result.each do |x|
+    csv << x.values
+    end
+  end
+  File.write("tmp/csv/Carriers_#{DateTime.now.strftime("%Y-%m-%d")}_#{id}-#{stop}.csv", s)
+end
+
+# Criando feature de export csv diario
+a = PrecoRota.where(created_at: "01/09/2021".to_datetime.."01/09/2021".to_datetime.end_of_day).where.not("content ->> 'Itineraries' = ?", '[]')
+
 # Legs
-result = []
+legs_result = []
 a.each_with_index do |x, i|
   puts "#{i}\n"
-  x["Legs"].each_with_index do |legs, leg_index|
+  x.content["Legs"].each_with_index do |legs, leg_index|
     output = {}
     output["Arrival"] = legs["Arrival"]
     output["Departure"] = legs["Departure"]
     output["OriginStation"] = legs["OriginStation"]
     output["DestinationStation"] = legs["DestinationStation"]
-    output["Carriers"] = legs["Carriers"]
-    output["Id"] = legs["Id"]
-    result << output
+    output["Carriers"] = legs["Carriers"].first
+    output["Legs_Id"] = legs["Id"]
+    #output["collection_date"] = x.created_at
+    legs_result << output
   end
 end
-column_names = result.first.keys
-s = CSV.generate do |csv|
-  csv << column_names
-  result.each do |x|
-  csv << x.values
-  end
-end
-File.write("tmp/Legs_#{DateTime.now.strftime("%Y-%m-%d")}.csv", s)
+legs_result.uniq!
 
 # Agents
-result = []
+agents_result = []
 a.each_with_index do |x, i|
   puts "#{i}\n"
-  x["Agents"].each_with_index do |agent, agent_index|
+  x.content["Agents"].each_with_index do |agent, agent_index|
     output = {}
-    output["Name"] = agent["Name"]
-    output["Type"] = agent["Type"]
-    output["Id"] = agent["Id"]
-    result << output
+    output["Agents_Name"] = agent["Name"]
+    output["Agents_Type"] = agent["Type"]
+    output["Agents_Id"] = agent["Id"]
+    #output["collection_date"] = x.created_at
+    agents_result << output
   end
 end
-
-column_names = result.first.keys
-s = CSV.generate do |csv|
-  csv << column_names
-  result.each do |x|
-  csv << x.values
-  end
-end
-File.write("tmp/Agents_#{DateTime.now.strftime("%Y-%m-%d")}.csv", s)
+agents_result.uniq!
 
 # Places
-result = []
+places_result = []
 a.each_with_index do |x, i|
   puts "#{i}\n"
-  x["Places"].each_with_index do |place, place_index|
+  x.content["Places"].each_with_index do |place, place_index|
     output = {}
-    output["Code"] = place["Code"]
-    output["Name"] = place["Name"]
-    output["Type"] = place["Type"]
-    output["Id"] = place["Id"]
-    output["ParentId"] = place["ParentId"]
-    result << output
+    output["Place_Code"] = place["Code"]
+    output["Place_Name"] = place["Name"]
+    output["Place_Type"] = place["Type"]
+    output["Place_Id"] = place["Id"]
+    output["Place_ParentId"] = place["ParentId"]
+    #output["collection_date"] = x.created_at
+    places_result << output
   end
 end
-
-column_names = result.first.keys
-s = CSV.generate do |csv|
-  csv << column_names
-  result.each do |x|
-  csv << x.values
-  end
-end
-File.write("tmp/Places_#{DateTime.now.strftime("%Y-%m-%d")}.csv", s)
+places_result.uniq!
 
 # Itineraries
-result = []
+itineraries_result = []
 a.each_with_index do |x, i|
   puts "#{i}\n"
-  x["Itineraries"].each do |itinerarie|
+  x.content["Itineraries"].each do |itinerarie|
     itinerarie["PricingOptions"].each_with_index do |price, price_index|
       output = {}
       output["InboundLegId"] = itinerarie["InboundLegId"]
       output["OutboundLegId"] = itinerarie["OutboundLegId"]
       output["Price"] = price["Price"]
-      output["Agents"] = price["Agents"]
-      result << output
+      output["Agents"] = price["Agents"].first
+      output["collection_date"] = x.created_at
+      itineraries_result << output
     end
   end
 end
 
-column_names = result.first.keys
-s = CSV.generate do |csv|
-  csv << column_names
-  result.each do |x|
-  csv << x.values
-  end
-end
-File.write("tmp/Itineraries_#{DateTime.now.strftime("%Y-%m-%d")}.csv", s)
-
 # Carriers
-result = []
+carriers_result = []
 a.each_with_index do |x, i|
-  x["Carriers"].each do |carrier|
+  x.content["Carriers"].each do |carrier|
     output = {}
-    output["Id"] = carrier["Id"]
-    output["Name"] = carrier["Name"]
-    output["Code"] = carrier["Code"]
-    result << output
+    output["Carrier_Id"] = carrier["Id"]
+    output["Carrier_Name"] = carrier["Name"]
+    output["Carrier_Code"] = carrier["Code"]
+    #output["collection_date"] = x.created_at
+    carriers_result << output
   end
 end
-
-column_names = result.first.keys
-s = CSV.generate do |csv|
-  csv << column_names
-  result.each do |x|
-  csv << x.values
-  end
-end
-File.write("tmp/Carriers_#{DateTime.now.strftime("%Y-%m-%d")}.csv", s)
+carriers_result.uniq!
 
