@@ -16,7 +16,7 @@ class PrecoRotaController < ApplicationController
   # POST /preco_rota
   def create
     @preco_rotum = PrecoRota.new(content: params)
-    #byebug
+    # byebug
     if @preco_rotum.save
       render json: @preco_rotum, status: :created, location: @preco_rotum
     else
