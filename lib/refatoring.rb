@@ -37,9 +37,9 @@ itineraries_result.each do |itinerarie|
 
 end
 
-a = PrecoRota.where.not("content ->> 'Itineraries' = ?", '[]').where(id: id..stop)
+#a = PrecoRota.all
 # Legs
-a.each_with_index do |x, i|
+PrecoRota.all.each_with_index do |x, i|
   puts "#{i}\n"
   x.content["Legs"].each_with_index do |legs, leg_index|
     Leg.create(
@@ -47,42 +47,53 @@ a.each_with_index do |x, i|
       departure: legs["Departure"],
       origin_station: legs["OriginStation"],
       destination_station: legs["DestinationStation"],
-      carriers: = legs["Carriers"].first,
-      id_leg: = legs["Id"],
+      carrier: legs["Carriers"].first,
+      id_leg: legs["Id"],
+      created_at: x.created_at
     )
   end
   x.content["Agents"].each_with_index do |agent, agent_index|
     Agent.create(
       name: agent["Name"],
-      type: agent["Type"],
-      id_agent: agent["Id"]
+      agent_type: agent["Type"],
+      id_agent: agent["Id"],
+      created_at: x.created_at
     )
   end
   x.content["Places"].each_with_index do |place, place_index|
     Place.create(
       code: place["Code"],
       name: place["Name"],
-      type: place["Type"],
+      place_type: place["Type"],
       place_id: place["Id"],
-      parent_id: place["ParentId"]
+      parent_id: place["ParentId"],
+      created_at: x.created_at
     )
   end
   x.content["Carriers"].each do |carrier|
     Carrier.create(
       carrier_id: carrier["Id"],
       name: carrier["Name"],
-      code: carrier["Code"]
+      code: carrier["Code"],
+      created_at: x.created_at
     )
   end
   x.content["Itineraries"].each do |itinerarie|
-    itinerarie["PricingOptions"].each_with_index do |price, price_index|
-      aux = Itinerarie.create(
-        inboundlegid: itinerarie["InboundLegId"],
-        outboundlegid: itinerarie["OutboundLegId"],
-        price: price["Price"],
-        agents: price["Agents"].first
-      )
-    end
+    Itinerary.create(
+      inbound_leg_ig: itinerarie["InboundLegId"],
+      outbound_leg_id: itinerarie["OutboundLegId"],
+      price: itinerarie["PricingOptions"].map{|e| e.except("DeeplinkUrl", "QuoteAgeInMinutes")},
+      created_at: x.created_at
+    )
+#    itinerarie["PricingOptions"].each_with_index do |price, price_index|
+      #aux = Itinerary.create(
+      #  inbound_leg_ig: itinerarie["InboundLegId"],
+      #  outbound_leg_id: itinerarie["OutboundLegId"],
+      #  price: price["Price"],
+      #  agent: price["Agents"].first,
+      #  created_at: x.created_at
+      #)
+    #end
   end
 end
 
@@ -93,8 +104,8 @@ params["Legs"].each do |legs|
     departure: legs["Departure"],
     origin_station: legs["OriginStation"],
     destination_station: legs["DestinationStation"],
-    carriers: = legs["Carriers"].first,
-    id_leg: = legs["Id"],
+    carrier: legs["Carriers"].first,
+    id_leg: legs["Id"],
   )
 end
 params["Agents"].each do |agent|
@@ -121,14 +132,11 @@ params["Carriers"].each do |carrier|
   )
 end
 params["Itineraries"].each do |itinerarie|
-  itinerarie["PricingOptions"].each do |price|
-    aux = Itinerarie.create(
-      inboundlegid: itinerarie["InboundLegId"],
-      outboundlegid: itinerarie["OutboundLegId"],
-      price: price["Price"],
-      agents: price["Agents"].first
-    )
-  end
+  Itinerary.create(
+    inbound_leg_ig: itinerarie["InboundLegId"],
+    outbound_leg_id: itinerarie["OutboundLegId"],
+    price: itinerarie["PricingOptions"].map{|e| e.except("DeeplinkUrl", "QuoteAgeInMinutes")}
+  )
 end
 
 Itinerary.where(created_at: 1.days.ago.beginning_of_day..1.days.ago.end_of_day).each do |iti|
