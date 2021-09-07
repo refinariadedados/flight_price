@@ -6,4 +6,6 @@ Rails.application.routes.draw do
   get 'get_query_dates', to: 'application#get_dates'
   get 'get_query_body', to: 'application#get_body'
 
+  post 'transpose_data', to: 'application#transpose_data'
+
 end
