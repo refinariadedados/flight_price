@@ -64,13 +64,18 @@ class ApplicationController < ActionController::API
           code: carrier["Code"]
         )
       end
+      itineraries = []
       params["Itineraries"].each do |itinerarie|
-        Itinerary.create(
+        itineraries << {
           inbound_leg_ig: itinerarie["InboundLegId"],
           outbound_leg_id: itinerarie["OutboundLegId"],
-          price: itinerarie["PricingOptions"].map{|e| e.except("DeeplinkUrl", "QuoteAgeInMinutes")}
-        )
+          price: itinerarie["PricingOptions"].map{|e| e.except("DeeplinkUrl", "QuoteAgeInMinutes")},
+          created_at: Time.now,
+          updated_at: Time.now
+        }
       end
+      Itinerary.insert_all(itineraries)
+
       # Como vamos juntar depois só deus sabe
       #@preco_rotum = PrecoRota.new(content: params)
       # byebug
